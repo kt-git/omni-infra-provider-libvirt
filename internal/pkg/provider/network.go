@@ -33,6 +33,15 @@ func (n networkInterface) ifaceType() string {
 	return strings.ToLower(n.Type)
 }
 
+// macAddr returns the user-provided MAC (mac, or the legacy physical_address).
+func (n networkInterface) macAddr() string {
+	if n.MAC != "" {
+		return n.MAC
+	}
+
+	return n.PhysAddr
+}
+
 func (n networkInterface) validate(idx int) error {
 	switch n.ifaceType() {
 	case ifaceTypeNetwork:
@@ -57,9 +66,9 @@ func (n networkInterface) validate(idx int) error {
 		return fmt.Errorf("network_interfaces[%d]: unsupported type %q (want network, bridge or direct)", idx, n.Type)
 	}
 
-	if n.MAC != "" {
-		if _, err := net.ParseMAC(n.MAC); err != nil {
-			return fmt.Errorf("network_interfaces[%d]: invalid mac %q: %w", idx, n.MAC, err)
+	if mac := n.macAddr(); mac != "" {
+		if _, err := net.ParseMAC(mac); err != nil {
+			return fmt.Errorf("network_interfaces[%d]: invalid mac %q: %w", idx, mac, err)
 		}
 	}
 
@@ -98,8 +107,8 @@ func deriveMAC(machineUUID string, idx int) string {
 
 // interfaceMAC returns the configured MAC (normalized) or a derived one.
 func interfaceMAC(n networkInterface, machineUUID string, idx int) string {
-	if n.MAC != "" {
-		if hw, err := net.ParseMAC(n.MAC); err == nil {
+	if mac := n.macAddr(); mac != "" {
+		if hw, err := net.ParseMAC(mac); err == nil {
 			return hw.String()
 		}
 	}

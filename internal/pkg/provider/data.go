@@ -41,6 +41,7 @@ type networkInterface struct {
 	Device      string   `yaml:"device,omitempty"`
 	Mode        string   `yaml:"mode,omitempty"`
 	MAC         string   `yaml:"mac,omitempty"`
+	PhysAddr    string   `yaml:"physical_address,omitempty"` // deprecated alias of MAC (from the upstream schema)
 	Gateway     string   `yaml:"gateway,omitempty"`
 	Addresses   []string `yaml:"addresses,omitempty"`
 	Nameservers []string `yaml:"nameservers,omitempty"`

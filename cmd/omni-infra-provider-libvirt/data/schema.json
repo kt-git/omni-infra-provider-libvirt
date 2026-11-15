@@ -67,8 +67,7 @@
       "default": [
         {
           "driver": "virtio",
-          "network_name": "default",
-          "physical_address": ""
+          "network_name": "default"
         }
       ],
       "items": {
@@ -78,23 +77,140 @@
             "type": "string",
             "enum": [
               "virtio",
-              "e1000e"
+              "e1000e",
+              "e1000"
             ],
             "default": "virtio"
           },
           "physical_address": {
             "type": "string",
-            "description": "MAC address. If empty or omitted, libvirt will assign one."
+            "description": "Deprecated alias of mac."
           },
           "network_name": {
             "type": "string",
-            "description": "libvirt network name. Must exist, the provider will not create it.",
-            "default": "default"
+            "description": "libvirt network name (type network). Must exist, the provider will not create it."
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "network",
+              "bridge",
+              "direct"
+            ],
+            "default": "network",
+            "description": "How the NIC is attached: libvirt network (network_name), existing host bridge (bridge) or macvtap on a host interface (device)."
+          },
+          "bridge": {
+            "type": "string",
+            "description": "Existing host Linux bridge name (type bridge), e.g. br0."
+          },
+          "device": {
+            "type": "string",
+            "description": "Host interface for macvtap (type direct)."
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "bridge",
+              "vepa",
+              "private",
+              "passthrough"
+            ],
+            "description": "macvtap mode (type direct), default bridge."
+          },
+          "mac": {
+            "type": "string",
+            "description": "MAC address. If empty, a stable MAC is derived from the machine UUID and NIC index."
+          },
+          "dhcp4": {
+            "type": "boolean",
+            "description": "Guest DHCPv4 on this NIC. Defaults to true unless addresses are set."
+          },
+          "addresses": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Static guest addresses in CIDR form."
+          },
+          "gateway": {
+            "type": "string",
+            "description": "Guest gateway for this NIC."
+          },
+          "nameservers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Guest DNS servers for this NIC."
           }
         },
         "required": [
-          "driver",
-          "network_name"
+          "driver"
+        ],
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "bridge"
+                }
+              },
+              "required": [
+                "type"
+              ]
+            },
+            "then": {
+              "required": [
+                "bridge"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "direct"
+                }
+              },
+              "required": [
+                "type"
+              ]
+            },
+            "then": {
+              "required": [
+                "device"
+              ]
+            }
+          },
+          {
+            "if": {
+              "anyOf": [
+                {
+                  "not": {
+                    "required": [
+                      "type"
+                    ]
+                  }
+                },
+                {
+                  "properties": {
+                    "type": {
+                      "const": "network"
+                    }
+                  },
+                  "required": [
+                    "type"
+                  ]
+                }
+              ]
+            },
+            "then": {
+              "required": [
+                "network_name"
+              ]
+            }
+          }
         ]
       }
     }

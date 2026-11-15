@@ -215,3 +215,21 @@ network_interfaces:
 		t.Fatalf("mac mismatch: %s vs %s", ifaces[1].MAC.Address, eth1.Match.MACAddress)
 	}
 }
+
+func TestPhysicalAddressAlias(t *testing.T) {
+	d := parseData(t, `
+network_interfaces:
+  - type: bridge
+    bridge: br0
+    physical_address: "52:54:00:01:02:03"
+`)
+
+	ifaces, err := buildDomainInterfaces(d.NetworkInterfaces, testUUID)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if ifaces[0].MAC.Address != "52:54:00:01:02:03" {
+		t.Fatalf("mac = %q", ifaces[0].MAC.Address)
+	}
+}
