@@ -10,9 +10,19 @@ type Data struct {
 	Graphics          string             `yaml:"graphics,omitempty"`
 	NetworkInterfaces []networkInterface `yaml:"network_interfaces,omitempty"`
 	AdditionalDisks   []additionalDisk   `yaml:"additional_disks,omitempty"`
+	PCIHostdevs       []pciHostdev       `yaml:"pci_hostdevs,omitempty"`
 	DiskSize          uint64             `yaml:"disk_size"`
 	Cores             uint               `yaml:"cores"`
 	Memory            uint               `yaml:"memory"`
+}
+
+// pciHostdev is a host PCI device to attach with VFIO (libvirt <hostdev>).
+// Address is a sysfs-style BDF, e.g. "0000:00:02.0".
+type pciHostdev struct {
+	Address string `yaml:"address"`
+	RomFile string `yaml:"romfile,omitempty"`
+	RomBar  *bool  `yaml:"rombar,omitempty"`
+	Managed *bool  `yaml:"managed,omitempty"`
 }
 
 type additionalDisk struct {

@@ -213,6 +213,34 @@
           }
         ]
       }
+    },
+    "pci_hostdevs": {
+      "type": "array",
+      "description": "Optional PCI devices to pass through with VFIO (libvirt hostdev). Leave the guest virtio-vga in place and attach the device as a secondary GPU. Address is a sysfs BDF such as 0000:00:02.0.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "address": {
+            "type": "string",
+            "description": "PCI address in sysfs form, e.g. 0000:00:02.0."
+          },
+          "romfile": {
+            "type": "string",
+            "description": "Optional ROM file path on the host, if a dumped VBIOS is required."
+          },
+          "rombar": {
+            "type": "boolean",
+            "description": "Whether to expose a ROM BAR. Defaults to true. Some IGD devices need this set false."
+          },
+          "managed": {
+            "type": "boolean",
+            "description": "Let libvirt bind/unbind vfio-pci. Defaults to true."
+          }
+        },
+        "required": [
+          "address"
+        ]
+      }
     }
   },
   "required": [

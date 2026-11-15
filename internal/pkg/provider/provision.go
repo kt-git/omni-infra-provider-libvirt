@@ -12,6 +12,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -517,6 +518,12 @@ func (p *Provisioner) ProvisionSteps() []provision.Step[*resources.Machine] {
 					},
 				}
 
+				hostdevs, err := buildPCIHostdevs(data.PCIHostdevs)
+				if err != nil {
+					return err
+				}
+				domData.Devices.Hostdevs = hostdevs
+
 				domXML, err := domData.Marshal()
 				if err != nil {
 					return fmt.Errorf("error rendering domain XML: %w", err)
@@ -567,4 +574,95 @@ func (p *Provisioner) ProvisionSteps() []provision.Step[*resources.Machine] {
 			},
 		),
 	}
+}
+
+func buildPCIHostdevs(devs []pciHostdev) ([]libvirtxml.DomainHostdev, error) {
+	if len(devs) == 0 {
+		return nil, nil
+	}
+
+	out := make([]libvirtxml.DomainHostdev, 0, len(devs))
+	for i, dev := range devs {
+		domain, bus, slot, function, err := parsePCIAddress(dev.Address)
+		if err != nil {
+			return nil, fmt.Errorf("pci_hostdevs[%d]: %w", i, err)
+		}
+
+		managed := "yes"
+		if dev.Managed != nil && !*dev.Managed {
+			managed = "no"
+		}
+
+		hostdev := libvirtxml.DomainHostdev{
+			Managed: managed,
+			SubsysPCI: &libvirtxml.DomainHostdevSubsysPCI{
+				Driver: &libvirtxml.DomainHostdevSubsysPCIDriver{
+					Name: "vfio",
+				},
+				Source: &libvirtxml.DomainHostdevSubsysPCISource{
+					Address: &libvirtxml.DomainAddressPCI{
+						Domain:   &domain,
+						Bus:      &bus,
+						Slot:     &slot,
+						Function: &function,
+					},
+				},
+			},
+		}
+
+		if dev.RomFile != "" || dev.RomBar != nil {
+			rom := &libvirtxml.DomainROM{}
+			if dev.RomFile != "" {
+				romFile := dev.RomFile
+				rom.File = &romFile
+			}
+			if dev.RomBar != nil {
+				if *dev.RomBar {
+					rom.Bar = "on"
+				} else {
+					rom.Bar = "off"
+				}
+			}
+			hostdev.ROM = rom
+		}
+
+		out = append(out, hostdev)
+	}
+
+	return out, nil
+}
+
+func parsePCIAddress(addr string) (domain, bus, slot, function uint, err error) {
+	addr = strings.TrimSpace(addr)
+	parts := strings.Split(addr, ":")
+	if len(parts) != 3 {
+		return 0, 0, 0, 0, fmt.Errorf("invalid PCI address %q (want 0000:00:02.0)", addr)
+	}
+
+	devfunc := strings.Split(parts[2], ".")
+	if len(devfunc) != 2 {
+		return 0, 0, 0, 0, fmt.Errorf("invalid PCI address %q (want 0000:00:02.0)", addr)
+	}
+
+	d, err := strconv.ParseUint(parts[0], 16, 16)
+	if err != nil {
+		return 0, 0, 0, 0, fmt.Errorf("invalid PCI domain in %q", addr)
+	}
+
+	b, err := strconv.ParseUint(parts[1], 16, 8)
+	if err != nil {
+		return 0, 0, 0, 0, fmt.Errorf("invalid PCI bus in %q", addr)
+	}
+
+	s, err := strconv.ParseUint(devfunc[0], 16, 8)
+	if err != nil {
+		return 0, 0, 0, 0, fmt.Errorf("invalid PCI slot in %q", addr)
+	}
+
+	f, err := strconv.ParseUint(devfunc[1], 16, 8)
+	if err != nil {
+		return 0, 0, 0, 0, fmt.Errorf("invalid PCI function in %q", addr)
+	}
+
+	return uint(d), uint(b), uint(s), uint(f), nil
 }
