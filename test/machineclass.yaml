@@ -58,3 +58,22 @@ spec:
       additional_disks:
         - type: "nvme"
           size: 500 # in GB
+---
+metadata:
+  namespace: default
+  type: MachineClasses.omni.sidero.dev
+  id: libvirt-bridged
+spec:
+  autoprovision:
+    providerid: libvirt
+    providerdata: |
+      cores: 2
+      memory: 4096 # in MB
+      disk_size: 20 # in GB
+      storage_pool: "default"
+      network_interfaces:
+        - type: bridge
+          bridge: br0
+        - type: bridge
+          bridge: br1
+          dhcp4: false

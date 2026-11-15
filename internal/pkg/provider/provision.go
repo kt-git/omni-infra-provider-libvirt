@@ -205,13 +205,18 @@ func (p *Provisioner) ProvisionSteps() []provision.Step[*resources.Machine] {
 					return err
 				}
 
+				networkConfig, err := buildNetworkData(data.NetworkInterfaces, pctx.State.TypedSpec().Value.Uuid)
+				if err != nil {
+					return err
+				}
+
 				var (
 					vmName  = pctx.GetRequestID()
 					volName = fmt.Sprintf("%s-cidata.iso", vmName)
 
 					metadata    = bytes.NewReader(cidata.MetaData(vmName))
 					userdata    = bytes.NewReader([]byte(pctx.ConnectionParams.JoinConfig))
-					networkdata = bytes.NewReader(cidata.NetworkData()) // TODO: allow to be passed by user?
+					networkdata = bytes.NewReader(networkConfig)
 				)
 
 				isoData, err := cidata.GenerateCidataISO(metadata, userdata, networkdata)
@@ -399,21 +404,9 @@ func (p *Provisioner) ProvisionSteps() []provision.Step[*resources.Machine] {
 
 				// assemble network interfaces
 
-				var networkInterfaces []libvirtxml.DomainInterface
-
-				for _, ifaceData := range data.NetworkInterfaces {
-					iface := libvirtxml.DomainInterface{
-						Model: &libvirtxml.DomainInterfaceModel{
-							Type: ifaceData.Driver,
-						},
-						Source: &libvirtxml.DomainInterfaceSource{
-							Network: &libvirtxml.DomainInterfaceSourceNetwork{
-								Network: ifaceData.NetworkName,
-							},
-						},
-					}
-
-					networkInterfaces = append(networkInterfaces, iface)
+				networkInterfaces, err := buildDomainInterfaces(data.NetworkInterfaces, pctx.State.TypedSpec().Value.Uuid)
+				if err != nil {
+					return err
 				}
 
 				// assemble graphics and video devices

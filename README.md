@@ -39,6 +39,35 @@ libvirt:
 > `omni-infra-provider-libvirt` will not create storage pools nor networks.
 > It will optimistically assume that they already exist and are functional.
 
+### Network interfaces
+
+Each entry in `network_interfaces` of the machine class provider data attaches one NIC:
+
+```yaml
+network_interfaces:
+  # libvirt-managed network (default type, backwards compatible)
+  - driver: virtio
+    network_name: default
+  # existing host Linux bridge (e.g. a Talos BridgeConfig)
+  - type: bridge
+    bridge: br0
+  # macvtap on a host interface (mode: bridge|vepa|private|passthrough, default bridge)
+  - type: direct
+    device: enp39s0
+  # optional per-NIC settings
+  - type: bridge
+    bridge: br1
+    mac: "52:54:00:12:34:56"       # default: stable MAC derived from the machine UUID + NIC index
+    addresses: ["192.168.2.50/24"] # static guest address; implies dhcp4: false
+    # dhcp4: true|false
+    # gateway: 192.168.2.1
+    # nameservers: [1.1.1.1]
+```
+
+`driver` defaults to `virtio`. If no NIC sets `dhcp4`, `addresses`, `gateway` or `nameservers`, the guest
+keeps the default nocloud network config (DHCP on all interfaces); otherwise a network-config matched by MAC
+address is generated.
+
 ### Using Docker
 
 Copy the provider credentials created in omni to an `.env` file
