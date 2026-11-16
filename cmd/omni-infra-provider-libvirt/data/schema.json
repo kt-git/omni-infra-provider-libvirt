@@ -143,6 +143,12 @@
               "type": "string"
             },
             "description": "Guest DNS servers for this NIC."
+          },
+          "mtu": {
+            "type": "integer",
+            "minimum": 68,
+            "maximum": 65535,
+            "description": "Host-side NIC MTU (libvirt <mtu size>); virtio advertises it to the guest. The host bridge must already have this MTU."
           }
         },
         "required": [

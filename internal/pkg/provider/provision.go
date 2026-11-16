@@ -281,14 +281,18 @@ func (p *Provisioner) ProvisionSteps() []provision.Step[*resources.Machine] {
 					return provision.NewRetryErrorf(time.Second*10, "error fetching volume: %w", err)
 				}
 
+				vdaIOThread := uint(1)
+
 				disks := []libvirtxml.DomainDisk{
 					{
 						Device: "disk",
 						Driver: &libvirtxml.DomainDiskDriver{
-							Name:  "qemu",
-							Type:  "qcow2",
-							Cache: "none",
-							IO:    "native",
+							Name:     "qemu",
+							Type:     "qcow2",
+							Cache:    "none",
+							IO:       "native",
+							Discard:  "unmap",
+							IOThread: &vdaIOThread,
 						},
 						Source: &libvirtxml.DomainDiskSource{
 							Volume: &libvirtxml.DomainDiskSourceVolume{
@@ -357,10 +361,11 @@ func (p *Provisioner) ProvisionSteps() []provision.Step[*resources.Machine] {
 					additionalDisk := libvirtxml.DomainDisk{
 						Device: "disk",
 						Driver: &libvirtxml.DomainDiskDriver{
-							Name:  "qemu",
-							Type:  "qcow2",
-							Cache: "none",
-							IO:    "native",
+							Name:    "qemu",
+							Type:    "qcow2",
+							Cache:   "none",
+							IO:      "native",
+							Discard: "unmap",
 						},
 						Source: &libvirtxml.DomainDiskSource{
 							Volume: &libvirtxml.DomainDiskSourceVolume{
@@ -405,7 +410,7 @@ func (p *Provisioner) ProvisionSteps() []provision.Step[*resources.Machine] {
 
 				// assemble network interfaces
 
-				networkInterfaces, err := buildDomainInterfaces(data.NetworkInterfaces, pctx.State.TypedSpec().Value.Uuid)
+				networkInterfaces, err := buildDomainInterfaces(data.NetworkInterfaces, pctx.State.TypedSpec().Value.Uuid, data.Cores)
 				if err != nil {
 					return err
 				}
@@ -466,6 +471,7 @@ func (p *Provisioner) ProvisionSteps() []provision.Step[*resources.Machine] {
 						Placement: "static",
 						Value:     data.Cores,
 					},
+					IOThreads: 1,
 					OS: &libvirtxml.DomainOS{
 						Type: &libvirtxml.DomainOSType{
 							Arch:    "x86_64",
@@ -478,6 +484,13 @@ func (p *Provisioner) ProvisionSteps() []provision.Step[*resources.Machine] {
 					},
 					CPU: &libvirtxml.DomainCPU{
 						Mode: "host-passthrough",
+						Topology: &libvirtxml.DomainCPUTopology{
+							Sockets:  1,
+							Dies:     1,
+							Clusters: 1,
+							Cores:    int(data.Cores),
+							Threads:  1,
+						},
 					},
 					Features: &libvirtxml.DomainFeatureList{
 						ACPI: &libvirtxml.DomainFeature{},
@@ -503,7 +516,17 @@ func (p *Provisioner) ProvisionSteps() []provision.Step[*resources.Machine] {
 						Disks:      disks,
 						Interfaces: networkInterfaces,
 						MemBalloon: &libvirtxml.DomainMemBalloon{
-							Model: "virtio",
+							Model:             "virtio",
+							AutoDeflate:       "on",
+							FreePageReporting: "on",
+						},
+						RNGs: []libvirtxml.DomainRNG{
+							{
+								Model: "virtio",
+								Backend: &libvirtxml.DomainRNGBackend{
+									Random: &libvirtxml.DomainRNGBackendRandom{Device: "/dev/urandom"},
+								},
+							},
 						},
 						Serials: []libvirtxml.DomainSerial{},
 						Consoles: []libvirtxml.DomainConsole{

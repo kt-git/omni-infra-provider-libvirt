@@ -128,7 +128,7 @@ func validateInterfaces(ifaces []networkInterface) error {
 }
 
 // buildDomainInterfaces renders libvirt domain interfaces for the given NICs.
-func buildDomainInterfaces(ifaces []networkInterface, machineUUID string) ([]libvirtxml.DomainInterface, error) {
+func buildDomainInterfaces(ifaces []networkInterface, machineUUID string, queues uint) ([]libvirtxml.DomainInterface, error) {
 	if err := validateInterfaces(ifaces); err != nil {
 		return nil, err
 	}
@@ -144,6 +144,15 @@ func buildDomainInterfaces(ifaces []networkInterface, machineUUID string) ([]lib
 		iface := libvirtxml.DomainInterface{
 			MAC:   &libvirtxml.DomainInterfaceMAC{Address: interfaceMAC(n, machineUUID, i)},
 			Model: &libvirtxml.DomainInterfaceModel{Type: driver},
+		}
+
+		// virtio-net multiqueue: one vhost queue pair per vCPU.
+		if driver == defaultIfaceDriver && queues > 1 {
+			iface.Driver = &libvirtxml.DomainInterfaceDriver{Name: "vhost", Queues: queues}
+		}
+
+		if n.MTU > 0 {
+			iface.MTU = &libvirtxml.DomainInterfaceMTU{Size: n.MTU}
 		}
 
 		switch n.ifaceType() {

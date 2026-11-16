@@ -34,7 +34,7 @@ network_interfaces:
     network_name: default
 `)
 
-	ifaces, err := buildDomainInterfaces(d.NetworkInterfaces, testUUID)
+	ifaces, err := buildDomainInterfaces(d.NetworkInterfaces, testUUID, 1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -65,7 +65,7 @@ network_interfaces:
     device: enp39s0
 `)
 
-	ifaces, err := buildDomainInterfaces(d.NetworkInterfaces, testUUID)
+	ifaces, err := buildDomainInterfaces(d.NetworkInterfaces, testUUID, 1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -206,7 +206,7 @@ network_interfaces:
 	}
 
 	// domain MACs must match the network-config MACs
-	ifaces, err := buildDomainInterfaces(d.NetworkInterfaces, testUUID)
+	ifaces, err := buildDomainInterfaces(d.NetworkInterfaces, testUUID, 1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -224,7 +224,7 @@ network_interfaces:
     physical_address: "52:54:00:01:02:03"
 `)
 
-	ifaces, err := buildDomainInterfaces(d.NetworkInterfaces, testUUID)
+	ifaces, err := buildDomainInterfaces(d.NetworkInterfaces, testUUID, 1)
 	if err != nil {
 		t.Fatal(err)
 	}

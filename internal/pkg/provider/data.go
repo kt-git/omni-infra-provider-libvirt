@@ -55,4 +55,5 @@ type networkInterface struct {
 	Gateway     string   `yaml:"gateway,omitempty"`
 	Addresses   []string `yaml:"addresses,omitempty"`
 	Nameservers []string `yaml:"nameservers,omitempty"`
+	MTU         uint     `yaml:"mtu,omitempty"` // host-side <mtu size=…/> (virtio advertises it to the guest); 0 = libvirt default
 }
